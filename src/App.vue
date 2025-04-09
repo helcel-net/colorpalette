@@ -1,86 +1,112 @@
 <template>
+  <div class="section">
   <div class="container">
-    <h1>Color Palette Generator</h1>
 
-    <!-- Color Picker/Input -->
-    <div class="input-container">
-      <label for="color-picker">Select Color (Hex):</label>
-      <input
-        id="color-picker"
-        type="color"
-        v-model="selectedColor"
-        @input="generatePalette"
-      />
-      <input
-        type="text"
-        v-model="selectedColor"
-        @input="generatePalette"
-        placeholder="Enter Hex (e.g., #FF5733)"
-      />
-    </div>
-
-    <!-- Sliders for adjusting the color -->
-    <div class="sliders">
-      <label for="lightness">Adjust MixLevel:</label>
-      <input
-        id="mixlevel"
-        type="range"
-        min="0"
-        max="75"
-        step="0.5"
-        value="0"
-        v-model="mixlevel"
-        @input="generatePalette"
-      />
-    </div>
-
+    <div class="col-12 row">
+      <div class="col-2">
+        <div class="input col-12">
+          <div class="input row">
+            <input
+              id="color-picker"
+              class="col-3"
+              type="color"
+              style="height:48px"
+              v-model="selectedColor"
+              @input="generatePalette"
+            />
+            <input
+              type="text"
+              class="col-9"
+              v-model="selectedColor"
+              @input="generatePalette"
+              placeholder="Enter Hex (e.g., #FF5733)"
+            />
+          </div>
+        
+          <div class="input row">
+            <label for="lightness" class="col-2">Mix</label>
+            <input
+              id="mixlevel"
+              class="col-10"
+              type="range"
+              min="0"
+              max="75"
+              step="0.5"
+              value="0"
+              v-model="mixlevel"
+              @input="generatePalette"
+            />
+          </div>
+          <div class="checkbox row">
+            <label for="contrast" class="col-6">Contrast</label>
+            <input
+              id="contrast"
+              class="col-2"
+              type="checkbox"
+              min="0"
+              max="75"
+              step="0.5"
+              value="0"
+              v-model="showContrast"
+            />
+          </div>
+        </div>
+      </div>
+    
     <!-- Display the Color Palette -->
-    <div class="palette">
-      <h2>Generated Palette</h2>
-      <div class="palette-colors">
-        <div
-          v-for="(color, index) in palette"
-          :key="index"
-          >
-          <div
-          :style="{ backgroundColor: color.css }"
-          class="color-box"
-        >
-      {{color.pantone}}</div>
-        <div>
+    <div class="col-10">
+      <div class="col-12 ">
+      <h1 class="text-huge text-white text-center">Color Palette Generator</h1></div>
+      <div class="space align row">
+        <div class="space-colors">
+          <canvas ref="space" class="rounded" width="360" height="64"></canvas>
+          <svg width="360" height="64" class="space-svg">
+            <circle
+              v-for="(color, index) in palette"
+              :key="index"
+              :cx="color.raw[2]"
+              :cy="32"
+              r="16px"
+              :fill="color.css"
+              stroke="white"
+              stroke-width="2"
+            />
+          </svg>
+        </div>
+      </div>
 
+        <div class="palette-colors col-12 row">
+          <div
+            v-for="(color, index) in palette"
+            :key="index"
+            class="col-3 rounded"
+            style="aspect-ratio:1/1" >
+            <div
+            :style="{ backgroundColor: color.css, gap:'5%', padding:'5%', 'align-content':'center' }"
+            class="w-100 h-100 flex">  
+              <span  v-if="showContrast"
+            v-for="(colorb, indexb) in palette"
+            :key="index" class="ratio-1 rounded" :style="{
+              background: colorb.css, 
+              width:'10%', height:'16px', display:'block', 
+              display:index==indexb?'none':'block',
+              'border':Math.abs(contrast(colorb.raw,color.raw))<5?'solid 1px white':'none'
+            }">{{contrast(colorb.raw,color.raw)}}</span>
+              </div>
+            <div>
+            </div>
           </div>
-          </div>
+        </div>
       </div>
     </div>
-
-    <!-- Color Spectrum Visualization -->
-     <div class="space">
-      <h2>Color Space</h2>
-
-      <div class="palette-colors"><div class="space-colors">
-        <canvas ref="space" width="360" height="64"></canvas>
-       <svg width="360" height="64" class="space-svg">
-        <circle
-          v-for="(color, index) in palette"
-          :key="index"
-          :cx="color.raw[2]"
-          :cy="32"
-          r="16px"
-          :fill="color.css"
-          stroke="white"
-          stroke-width="2"
-        />
-      </svg>
-      </div></div>
-    </div>
+  </div>
   </div>
 </template>
 
 <script>
 import { onMounted, ref } from 'vue';
 
-import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK} from './palette';
+import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK, contrast} from './palette';
 
 export const throttle = (func, wait) => {
     var lastTime = 0;
@@ -117,6 +143,7 @@ export default {
     const mixlevel = ref(0) // Default slider value
     const palette = ref([])
     const space = ref()
+    const showContrast = ref(false)
 
     onMounted(()=>
     {
@@ -160,6 +187,8 @@ export default {
       space,
       generatePalette,
       slowgen,
+      contrast,
+      showContrast,
 
     };
   },
@@ -167,45 +196,20 @@ export default {
 </script>
 
 <style scoped>
-.container {
-  padding: 20px;
-  font-family: Arial, sans-serif;
-}
-
-h1, h2 {
-  text-align: center;
-}
-
-.input-container, .sliders, .palette, .space {
-  margin-bottom: 20px;
-}
-
-.palette-colors {
-  display: flex;
-  gap:10px;
-  justify-content: center;
-  position: relative;
-}
-
-.color-box {
-  width: 64px;
-  height: 64px;
-  border-radius: 5px;
-  text-align: center;
-  align-content: center;
-  color:black;
-}
-
 .space-colors{
   width:360px;
   height:64px
 }
-.palette-colors>div >canvas{
+.space-colors >canvas{
   position: absolute; z-index: 0;
 }
-.palette-colors>div >svg{
+.space-colors >svg{
   position: absolute; z-index: 1;
   overflow:visible;
+}
+.palette-pin {
+  width: 16px;
+  height: 16px;
 }
 
 </style>
