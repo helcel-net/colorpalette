@@ -18,20 +18,6 @@
               @input="generatePalette"
             />
           </div>
-        
-          <div class="rounded bg-white row">
-            <input
-              id="mixlevel"
-              class="col-10"
-              type="range"
-              min="0"
-              max="75"
-              step="0.5"
-              value="0"
-              v-model="mixlevel"
-              @change="generatePalette"
-            />
-          </div>
         </div>
 
          <div class="rounded bg-white col-12">
@@ -47,17 +33,29 @@
         </div>
 
         <div v-if="selectedBW" class="input rounded bg-white col-12">
-              <label for="over">Pastellify</label>
+              <label class="col-2" for="mixlevel">Mix</label>
+              <input
+              id="mixlevel"
+              class="col-11"
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value="0"
+              v-model="mixlevel"
+              @input="generatePalette"
+            />
+              <label class="col-2"  for="over">Pastellify</label>
               <input
               id="over"
-              class="col-12"
+              class="col-11"
               type="range"
               min="-1"
               max="4"
               step="0.5"
               value="0"
               v-model="selectedPastellify"
-              @change="generatePalette"
+              @input="generatePalette"
             />
         </div>        
         <div v-else="selectedBW" class="rounded bg-white col-12">
