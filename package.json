@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "rsbuild pnpm build",
+        "build": "rsbuild build",
         "dev": "rsbuild pnpm dev --open",
         "preview": "rsbuild preview"
     },
