@@ -141,7 +141,8 @@ export function genGray(primaryColor: string, c: boolean = true) {
     if (!chroma.valid(primaryColor)) throw "Invalid Primary Color";
     const color = chroma(primaryColor).oklch();
     const pH = (color[2] + (c ? 180 : 0)) % 360;
-    let bLs = gaussianCurve(12, 0.99, 0.05);
+    let bLs = gaussianCurve(8, 0.99, 0.05);
+    bLs.pop()
     const palette = bLs.map((bL) => {
         const h = pH;
         const c = lerp(getMin(bL, null, pH), getMax(bL, null, pH), 0.33);
@@ -164,7 +165,11 @@ export function genSVG(palette: LCH_FORMAT[]) {
 }
 
 export function contrast(a: LCH_FORMAT, b: LCH_FORMAT) {
-    return chroma.contrast(chroma.oklch(a[0], a[1], a[2]).hex(), chroma.oklch(b[0], b[1], b[2]).hex())
+    return chroma.contrast(chroma.oklch(a[0], a[1], a[2]), chroma.oklch(b[0], b[1], b[2]))
+}
+
+export function difference(a: LCH_FORMAT, b: LCH_FORMAT) {
+    return chroma.distance(chroma.oklch(a[0], a[1], a[2]), chroma.oklch(b[0], b[1], b[2]))
 }
 
 export function toLCH(hex: string) {
@@ -202,33 +207,3 @@ export function toPantone(palette: LCH_FORMAT[]) {
             }).color
     );
 }
-// let output = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 ${
-//     5 * 100
-// }">`;
-// for (let i = 0; i < 2; ++i) {
-//     output += `<g transform="translate(000 ${i * 100})">`;
-//     const palette = generateGrayScale(primaryColor, i == 0);
-//     for (let j in palette) {
-//         output += `<path fill="${chroma
-//             .oklch(palette[j][0], palette[j][1], palette[j][2])
-//             .css("oklch")}" pantone="${toPantone(palette[j])}" d="M${
-//             100 * j
-//         } 0h100v100H${j * 100}z" />`;
-//     }
-//     output += `</g > `;
-// }
-// for (let i = 2; i < 6; ++i) {
-//     output += `<g transform="translate(000 ${i * 100})">`;
-//     const palette = generatePalette(primaryColor, baseHues, (i - 2) * 2);
-//     for (let j in palette) {
-//         output += `<path fill="${chroma
-//             .oklch(palette[j][0], palette[j][1], palette[j][2])
-//             .css("oklch")}" pantone="${toPantone(palette[j])}" d="M${
-//             j * 100
-//         } 0h100v100H${j * 100}z" />`;
-//     }
-//     output += `</g > `;
-// }
-// output += `</svg > `;
-
-// console.log(output);

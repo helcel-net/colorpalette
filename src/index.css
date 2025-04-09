@@ -224,7 +224,6 @@ input:-webkit-autofill {
   appearance: none;
   border-radius: var(--border-radius);
   margin-top: -0.5rem;
-  /* Centers thumb on the track */
   background-color: var(--blue);
   height: 1.5rem;
   width: 0.5rem;
@@ -250,7 +249,7 @@ input:-webkit-autofill {
   border: none;
 }
 
-.checkbox input[type=checkbox] {
+.checkbox input[type=checkbox]+label {
   display: block;
   overflow: hidden;
   padding-left: 30px;
@@ -258,8 +257,8 @@ input:-webkit-autofill {
   white-space: nowrap
 }
 
-.checkbox input[type=checkbox]:before {
-  background-color: #eceff1;
+.checkbox input[type=checkbox]+label::before {
+  background-color: var(--lightlight);
   border: 1px solid var(--white);
   border-radius: var(--border-radius);
   content: "";
@@ -272,9 +271,9 @@ input:-webkit-autofill {
   width: 20px
 }
 
-.checkbox input[type=checkbox]:after {
-  border-bottom: 3px solid #03a9f4;
-  border-right: 3px solid #03a9f4;
+.checkbox input[type=checkbox]+label::after {
+  border-bottom: 3px solid var(--blue);
+  border-right: 3px solid var(--blue);
   display: block;
   height: 12px;
   left: 11px;
@@ -295,7 +294,8 @@ input:-webkit-autofill {
   display: none
 }
 
-.radio input[type=radio]:checked:after {
+.checkbox input[type=checkbox]:checked+label::after,
+.radio input[type=radio]:checked + label::after {
   -webkit-animation: checkboxAndRadioAnimation .25s;
   animation: checkboxAndRadioAnimation .25s;
   content: "";
@@ -303,7 +303,7 @@ input:-webkit-autofill {
   transform: scale(1) rotate(45deg)
 }
 
-.radio input[type=radio] {
+.radio input[type=radio] + label{
   display: block;
   overflow: hidden;
   padding-left: 30px;
@@ -311,8 +311,8 @@ input:-webkit-autofill {
   white-space: nowrap
 }
 
-.radio input[type=radio]:before {
-  background-color: #eceff1;
+.radio input[type=radio]+ label::before {
+  background-color: var(--lightlight);
   border: 1px solid var(--white);
   border-radius: 20px;
   content: "";
@@ -325,8 +325,8 @@ input:-webkit-autofill {
   width: 20px
 }
 
-.radio input[type=radio]:after {
-  background-color: #03a9f4;
+.radio input[type=radio]+label::after {
+  background-color: var(--blue);
   border-radius: 20px;
   display: block;
   height: 10px;

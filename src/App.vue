@@ -1,16 +1,13 @@
 <template>
   <div class="section">
-  <div class="container">
-
-    <div class="col-12 row">
-      <div class="col-2">
+      <div class="col-2 fleft p-abs" style="z-index: 100;">
         <div class="input col-12">
           <div class="input row">
             <input
               id="color-picker"
               class="col-3"
               type="color"
-              style="height:48px"
+              style="height:32px"
               v-model="selectedColor"
               @input="generatePalette"
             />
@@ -19,12 +16,10 @@
               class="col-9"
               v-model="selectedColor"
               @input="generatePalette"
-              placeholder="Enter Hex (e.g., #FF5733)"
             />
           </div>
         
-          <div class="input row">
-            <label for="lightness" class="col-2">Mix</label>
+          <div class="rounded bg-white row">
             <input
               id="mixlevel"
               class="col-10"
@@ -34,30 +29,71 @@
               step="0.5"
               value="0"
               v-model="mixlevel"
-              @input="generatePalette"
-            />
-          </div>
-          <div class="checkbox row">
-            <label for="contrast" class="col-6">Contrast</label>
-            <input
-              id="contrast"
-              class="col-2"
-              type="checkbox"
-              min="0"
-              max="75"
-              step="0.5"
-              value="0"
-              v-model="showContrast"
+              @change="generatePalette"
             />
           </div>
         </div>
+
+         <div class="rounded bg-white col-12">
+            <div class="checkbox">
+              <input
+                id="bw"
+                type="checkbox"
+                v-model="selectedBW"
+                @change="generatePalette"
+              />
+              <label for="bw">BW/Colour</label>
+          </div>
+        </div>
+
+        <div v-if="selectedBW" class="input rounded bg-white col-12">
+              <label for="over">Pastellify</label>
+              <input
+              id="over"
+              class="col-12"
+              type="range"
+              min="-1"
+              max="4"
+              step="0.5"
+              value="0"
+              v-model="selectedPastellify"
+              @change="generatePalette"
+            />
+        </div>        
+        <div v-else="selectedBW" class="rounded bg-white col-12">
+            <div class="checkbox">
+              <input
+                id="complement"
+                type="checkbox"
+                v-model="selectedComplementary"
+                @change="generatePalette"
+              />
+              <label for="complement">Complementary</label>
+          </div>
+        </div>
+
+        <div class="rounded bg-white col-12">
+          <div v-for="mode in modes" :key="mode">
+            <div v-if="mode==null" style="height:1px;background-color: darkgray;"></div>
+            <div v-else class="radio">
+              <input
+                :id="'c'+mode"
+                type="radio"
+                v-model="selectedMode"
+                :value="mode"
+              />
+              <label  :for="'c'+mode">{{ mode }}</label>
+            </div>
+          </div>
+        </div>
       </div>
-    
-    <!-- Display the Color Palette -->
-    <div class="col-10">
-      <div class="col-12 ">
-      <h1 class="text-huge text-white text-center">Color Palette Generator</h1></div>
-      <div class="space align row">
+
+  <div class="col-12 container align row">
+    <div class="col-8">
+      <div class="col-12">
+      <h1 class="text-huge text-white text-center">Color Palette Generator</h1>
+      </div>
+      <div class="align row">
         <div class="space-colors">
           <canvas ref="space" class="rounded" width="360" height="64"></canvas>
           <svg width="360" height="64" class="space-svg">
@@ -75,26 +111,37 @@
         </div>
       </div>
 
-        <div class="palette-colors col-12 row">
+      <div class="align col-12 row">
+        <div
+          v-for="(color, index) in palette"
+          :key="index"
+          class="col-3 rounded"
+          style="aspect-ratio:1/1" >
           <div
-            v-for="(color, index) in palette"
-            :key="index"
-            class="col-3 rounded"
-            style="aspect-ratio:1/1" >
-            <div
-            :style="{ backgroundColor: color.css, gap:'5%', padding:'5%', 'align-content':'center' }"
-            class="w-100 h-100 flex">  
-              <span  v-if="showContrast"
-            v-for="(colorb, indexb) in palette"
-            :key="index" class="ratio-1 rounded" :style="{
-              background: colorb.css, 
-              width:'10%', height:'16px', display:'block', 
-              display:index==indexb?'none':'block',
-              'border':Math.abs(contrast(colorb.raw,color.raw))<5?'solid 1px white':'none'
-            }">{{contrast(colorb.raw,color.raw)}}</span>
-              </div>
-            <div>
+          :style="{ backgroundColor: color.css, gap:'5%', padding:'5%', 'align-content':'center' }"
+          class="w-100 h-100 flex rounded">  
+            <span  v-if="selectedMode=='Contrast'"
+              v-for="(colorb, indexb) in palette"
+              :key="'c'+indexb" class="ratio-1 rounded" :style="{
+                background: colorb.css, 
+                width:'10%', height:'16px', display:'block', 
+                display:index==indexb?'none':'block',
+                'border':Math.abs(contrast(colorb.raw,color.raw))<5?'solid 1px white':'none'
+              }"></span>
+          <span  v-else-if="selectedMode=='Difference'"
+              v-for="(colorb, indexb) in palette"
+              :key="'d'+indexb" class="ratio-1 rounded" :style="{
+                background: colorb.css, 
+                width:'10%', height:'16px', display:'block', 
+                display:index==indexb?'none':'block',
+                'border':Math.abs(difference(colorb.raw,color.raw))<10?'solid 1px white':'none'
+              }"></span>
+          <span  v-else-if="selectedMode=='LCH'">{{color.css }}</span>
+          <span  v-else-if="selectedMode=='CMYK'">{{color.cmyk.map(v=>Math.round(v*100)/100) }}</span>
+          <span  v-else-if="selectedMode=='Hex'">{{color.hex }}</span>
+          <span  v-else-if="selectedMode=='Pantone'">{{color.pantone }}</span>
             </div>
+          <div>
           </div>
         </div>
       </div>
@@ -106,7 +153,7 @@
 <script>
 import { onMounted, ref } from 'vue';
 
-import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK, contrast} from './palette';
+import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK, contrast, difference} from './palette';
 
 export const throttle = (func, wait) => {
     var lastTime = 0;
@@ -139,12 +186,16 @@ export const throttle = (func, wait) => {
 export default {
   name: 'App',
   setup() {
-    const selectedColor = ref('#3193F5'); // Default color (Hex)
-    const mixlevel = ref(0) // Default slider value
+    const selectedColor = ref('#3193F5');
+    const mixlevel = ref(0)
     const palette = ref([])
     const space = ref()
-    const showContrast = ref(false)
-
+    const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast', 'Difference','None']
+    const selectedMode = ref('none')
+    const selectedBW = ref(true)
+    const selectedComplementary = ref(false)
+    const modesPastellify = 8;
+    const selectedPastellify = ref(0)
     onMounted(()=>
     {
       let canvas = space.value
@@ -160,8 +211,14 @@ export default {
 
 
 
-    const slowgen = throttle(async (a,b)=>{
-      const arr = genColor(a,b,genSmartBaseHues(a));
+    const slowgen = throttle((a,b, bw, comp, over)=>{
+      console.log(over)
+      let arr = []
+      if(bw){
+        arr = genColor(a,b,genSmartBaseHues(a),over);
+      }else{
+        arr = genGray(a,comp);
+      }
       let raw = arr
       let css = toCSS(arr)
       let pantone = toPantone(arr)
@@ -171,12 +228,13 @@ export default {
   css: css[i],
   raw: raw[i],
   pantone: pantone[i],
+  hex: hex[i],
   cmyk: cmyk[i],
 }));
     },250)
     // Function to generate a palette of colors
     const generatePalette = () => {
-      slowgen(selectedColor.value,parseInt(mixlevel.value)/100.)
+      slowgen(selectedColor.value,parseInt(mixlevel.value)/100., selectedBW.value, selectedComplementary.value, selectedPastellify.value)
     }
     generatePalette();
 
@@ -187,8 +245,12 @@ export default {
       space,
       generatePalette,
       slowgen,
-      contrast,
-      showContrast,
+      contrast,difference,
+      modes,
+      selectedMode,
+      selectedBW,
+      selectedComplementary,
+      selectedPastellify
 
     };
   },
