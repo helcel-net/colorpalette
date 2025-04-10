@@ -92,13 +92,21 @@
       <h1 class="text-huge text-white text-center">Color Palette Generator</h1>
       </div>
       <div class="align row">
-        <div class="space-colors">
-          <canvas ref="space" class="rounded" width="360" height="64"></canvas>
-          <svg width="360" height="64" class="space-svg">
+        <div class="col-12 h-100 rounded">
+         <svg width="100%" height="64" class="space-svg">
+             <rect
+                v-for="angle in 360"
+                :key="angle"
+                :x="(angle-1)/3.60+'%'"
+                y="0"
+                width="1%"
+                height="64"
+                :fill="toCSS([[toLCH(selectedColor)[0],toLCH(selectedColor)[1],angle]])[0]"
+              />
             <circle
               v-for="(color, index) in palette"
               :key="index"
-              :cx="color.raw[2]"
+              :cx="(color.raw[2]/360)*100+'%'"
               :cy="32"
               r="16px"
               :fill="color.css"
@@ -114,26 +122,26 @@
           v-for="(color, index) in palette"
           :key="index"
           class="col-3 rounded"
-          style="aspect-ratio:1/1" >
+          style="aspect-ratio:1/1; padding:8px" >
           <div
           :style="{ backgroundColor: color.css, gap:'5%', padding:'5%', 'align-content':'center' }"
           class="w-100 h-100 flex rounded">  
-            <span  v-if="selectedMode=='Contrast'"
+            <span  v-if="selectedMode=='Contrast'&& !selectedBW"
               v-for="(colorb, indexb) in palette"
               :key="'c'+indexb" class="ratio-1 rounded" :style="{
                 background: colorb.css, 
                 width:'10%', height:'16px', display:'block', 
                 display:index==indexb?'none':'block',
                 'border':Math.abs(contrast(colorb.raw,color.raw))<5?'solid 1px white':'none'
-              }"></span>
-          <span  v-else-if="selectedMode=='Difference'"
+              }">{{ Math.round(contrast(colorb.raw,color.raw)) }}</span>
+          <span  v-else-if="selectedMode=='Contrast' && selectedBW"
               v-for="(colorb, indexb) in palette"
               :key="'d'+indexb" class="ratio-1 rounded" :style="{
                 background: colorb.css, 
                 width:'10%', height:'16px', display:'block', 
                 display:index==indexb?'none':'block',
                 'border':Math.abs(difference(colorb.raw,color.raw))<10?'solid 1px white':'none'
-              }"></span>
+              }">{{ Math.round(difference(colorb.raw,color.raw)) }}</span>
           <span  v-else-if="selectedMode=='DeltaE'"
               v-for="(colorb, indexb) in palette"
               :key="'e'+indexb" class="ratio-1 rounded" :style="{
@@ -196,26 +204,12 @@ export default {
     const mixlevel = ref(0)
     const palette = ref([])
     const space = ref()
-    const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast', 'Difference','DeltaE',null,'None']
+    const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast','DeltaE',null,'None']
     const selectedMode = ref('none')
     const selectedBW = ref(true)
     const selectedComplementary = ref(false)
     const modesPastellify = 8;
     const selectedPastellify = ref(0)
-    onMounted(()=>
-    {
-      let canvas = space.value
-      let canvasSize = canvas.getBoundingClientRect()
-      let ctx = canvas.getContext('2d')
-      let factor = 360/canvasSize.width;
-      const [l,c,h] = toLCH(selectedColor.value);
-      for (let x = 0; x <= canvasSize.width; x++) {
-        ctx.fillStyle = toCSS([[l,c,x*factor]])[0]
-        ctx.fillRect(x, 0, 1, canvasSize.height)
-      }
-    })
-
-
 
     const slowgen = throttle((a,b, bw, comp, over)=>{
       console.log(over)
@@ -251,7 +245,7 @@ export default {
       space,
       generatePalette,
       slowgen,
-      contrast,difference,deltaE,
+      contrast,difference,deltaE, toCSS, toLCH, toHex,
       modes,
       selectedMode,
       selectedBW,
@@ -264,20 +258,5 @@ export default {
 </script>
 
 <style scoped>
-.space-colors{
-  width:360px;
-  height:64px
-}
-.space-colors >canvas{
-  position: absolute; z-index: 0;
-}
-.space-colors >svg{
-  position: absolute; z-index: 1;
-  overflow:visible;
-}
-.palette-pin {
-  width: 16px;
-  height: 16px;
-}
 
 </style>

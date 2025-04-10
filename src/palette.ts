@@ -10,11 +10,7 @@ declare type HueRange = {
 
 const Max = Math.max;
 const Min = Math.min;
-const baseHues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-// const baseHues = [
-//     0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270,
-//     292.5, 315, 337.5,
-// ];
+
 const rangeHues: HueRange[] = [
     { min: 45, max: 75, preferred: 60 }, // Orange → Yellow
     { min: 70, max: 120, preferred: 105 }, // Yellow → Lime
@@ -37,7 +33,6 @@ function isHueInRange(hue: number, range: HueRange): boolean {
 }
 
 function selectClosestHues(hues: number[], ranges: HueRange[]): number[] {
-    return hues;
     return ranges
         .map((range) => {
             const matchingHues = hues.filter((h) => isHueInRange(h, range));
@@ -98,18 +93,45 @@ function getMin(l: number | null, c: number | null, h: number, step = 0.01) {
     return 1;
 }
 
-export function genSmartBaseHues(primaryColor: string): number[] {
+export function genSmartBaseHues(primaryColor: string,algo:number=2): number[] {
     if (!chroma.valid(primaryColor)) throw "Invalid Primary Color";
     const color = chroma(primaryColor).oklch();
-    let output = baseHues.map((b) => (color[2] + b) % 360);
-    return selectClosestHues(output, rangeHues);
+    switch(algo){
+        case 0:{
+            let output = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((b) => (color[2] + b) % 360);
+            return selectClosestHues(output, rangeHues);
+        }
+        case 1:{
+            let output = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((b) => (color[2] + b) % 360);
+            return output;
+        }
+        case 2:{
+            let output = [
+                color[2],(color[2]+180)%360,
+                (color[2]+330)%360, (color[2]+30)%360,
+                (color[2]+150)%360,(color[2]+210)%360,
+                (color[2]+90)%360,(color[2]+270)%360,
+            ]
+            return output
+        }
+        case 3:{
+            let output = [
+                color[2],(color[2]+180)%360,
+                (color[2]+315)%360, (color[2]+45)%360,
+                (color[2]+135)%360,(color[2]+225)%360,
+                (color[2]+90)%360,(color[2]+270)%360,
+            ]
+            return output
+        }
+    }
+    return []
 }
 
 export function genColor(
     primaryColor: string,
-    mixlevel: number = 0.05,
+    mixlevel: number = 0,
     bHs: number[] = baseHues,
-    over = 0
+    over = 0,s:boolean=true
 ) {
     if (!chroma.valid(primaryColor)) throw "Invalid Primary Color";
     const color = chroma(primaryColor).oklch();
@@ -121,10 +143,13 @@ export function genColor(
     const pCp = Min(1, pC / getMax(pL, null, pH));
 
     const palette = bHs.map((bH) => {
-        const h = chroma
-            .oklch(pL, pC, bH)
-            .mix(chroma.oklch(pL, pC, pH), mixlevel, "oklch")
-            .oklch()[2];
+        let h = bH
+        if(mixlevel>0){
+            h = s?(chroma
+                .oklch(pL, pC, bH)
+                .mix(chroma.oklch(pL, pC, pH), mixlevel, "oklch")
+                .oklch()[2]) : (((((bH-pH+360)%360)*(1-mixlevel))+pH)%360)
+        }
         let l = pLp * getMax(null, pC, h) || pL;
         let c = pCp * getMax(l, null, h) || pC;
         for (let itr = 0; itr < 100; ++itr) {
@@ -132,6 +157,7 @@ export function genColor(
             c = pCp * getMax(l, null, h) || pC;
         }
         return chroma.oklch(l, c, h).oklch();
+        
     });
 
     return palette;
@@ -169,7 +195,10 @@ export function contrast(a: LCH_FORMAT, b: LCH_FORMAT) {
 }
 
 export function difference(a: LCH_FORMAT, b: LCH_FORMAT) {
-    return chroma.distance(chroma.oklch(a[0], a[1], a[2]), chroma.oklch(b[0], b[1], b[2]))
+    return chroma.distance(chroma.oklch(a[0], a[1], a[2]), chroma.oklch(b[0], b[1], b[2]), 'oklch')
+}
+export function deltaE(a: LCH_FORMAT, b: LCH_FORMAT) {
+    return chroma.deltaE(chroma.oklch(a[0], a[1], a[2]), chroma.oklch(b[0], b[1], b[2]))
 }
 
 export function toLCH(hex: string) {
