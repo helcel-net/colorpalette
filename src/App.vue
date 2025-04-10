@@ -134,6 +134,14 @@
                 display:index==indexb?'none':'block',
                 'border':Math.abs(difference(colorb.raw,color.raw))<10?'solid 1px white':'none'
               }"></span>
+          <span  v-else-if="selectedMode=='DeltaE'"
+              v-for="(colorb, indexb) in palette"
+              :key="'e'+indexb" class="ratio-1 rounded" :style="{
+                background: colorb.css, 
+                width:'10%', height:'16px', display:'block', 
+                display:index==indexb?'none':'block',
+                'border':Math.abs(deltaE(colorb.raw,color.raw))<15?'solid 1px white':'none'
+              }">{{Math.round(deltaE(colorb.raw,color.raw))}}</span>
           <span  v-else-if="selectedMode=='LCH'">{{color.css }}</span>
           <span  v-else-if="selectedMode=='CMYK'">{{color.cmyk.map(v=>Math.round(v*100)/100) }}</span>
           <span  v-else-if="selectedMode=='Hex'">{{color.hex }}</span>
@@ -151,7 +159,7 @@
 <script>
 import { onMounted, ref } from 'vue';
 
-import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK, contrast, difference} from './palette';
+import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK, contrast, difference, deltaE} from './palette';
 
 export const throttle = (func, wait) => {
     var lastTime = 0;
@@ -188,7 +196,7 @@ export default {
     const mixlevel = ref(0)
     const palette = ref([])
     const space = ref()
-    const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast', 'Difference','None']
+    const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast', 'Difference','DeltaE',null,'None']
     const selectedMode = ref('none')
     const selectedBW = ref(true)
     const selectedComplementary = ref(false)
@@ -243,7 +251,7 @@ export default {
       space,
       generatePalette,
       slowgen,
-      contrast,difference,
+      contrast,difference,deltaE,
       modes,
       selectedMode,
       selectedBW,
