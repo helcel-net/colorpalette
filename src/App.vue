@@ -8,13 +8,13 @@
               class="col-3"
               type="color"
               style="height:32px"
-              v-model="selectedColor"
+              v-model="data.base"
               @input="generatePalette"
             />
             <input
               type="text"
               class="col-9"
-              v-model="selectedColor"
+              v-model="data.base"
               @input="generatePalette"
             />
           </div>
@@ -25,45 +25,54 @@
               <input
                 id="bw"
                 type="checkbox"
-                v-model="selectedBW"
+                v-model="data.bw"
                 @change="generatePalette"
               />
               <label for="bw">BW/Colour</label>
           </div>
         </div>
 
-        <div v-if="selectedBW" class="input rounded bg-white col-12">
-              <label class="col-2" for="mixlevel">Mix</label>
+        <div v-if="data.bw" class="input rounded bg-white col-12">
+          <label class="col-12" for="hueMode">Palette Mode</label>
+              <input
+              id="hueMode"
+              class="col-12"
+              type="range"
+              min="0"
+              max="3"
+              step="1"
+              v-model="data.H.mode"
+              @input="generatePalette"
+            />
+          <label class="col-12" for="mixlevel">Mix</label>
               <input
               id="mixlevel"
-              class="col-11"
+              class="col-12"
               type="range"
               min="0"
               max="100"
               step="0.5"
-              value="0"
-              v-model="mixlevel"
+              v-model="data.H.mix"
               @input="generatePalette"
             />
-              <label class="col-2"  for="over">Pastellify</label>
+              <label class="col-12"  for="over">Pastellify</label>
               <input
               id="over"
-              class="col-11"
+              class="col-12"
               type="range"
-              min="-1"
-              max="4"
+              :min="data.LC.pastellifyRange[0]"
+              :max="data.LC.pastellifyRange[1]"
               step="0.5"
-              value="0"
-              v-model="selectedPastellify"
+              v-model="data.LC.pastellify"
               @input="generatePalette"
             />
         </div>        
-        <div v-else="selectedBW" class="rounded bg-white col-12">
+        <div v-else class="rounded bg-white col-12">
             <div class="checkbox">
               <input
                 id="complement"
                 type="checkbox"
-                v-model="selectedComplementary"
+                v-model="data.H.complementary"
                 @change="generatePalette"
               />
               <label for="complement">Complementary</label>
@@ -101,12 +110,12 @@
                 y="0"
                 width="1%"
                 height="64"
-                :fill="toCSS([[toLCH(selectedColor)[0],toLCH(selectedColor)[1],angle]])[0]"
+                :fill="rainbowPalette[angle]"
               />
             <circle
-              v-for="(color, index) in palette"
+              v-for="(color, index) in palette" 
               :key="index"
-              :cx="(color.raw[2]/360)*100+'%'"
+              :cx="((color.raw[2] || 0)/3.60)+'%'"
               :cy="32"
               r="16px"
               :fill="color.css"
@@ -117,43 +126,38 @@
         </div>
       </div>
 
-      <div class="align col-12 row">
+      <div class="align col-12 flex">
         <div
           v-for="(color, index) in palette"
           :key="index"
           class="col-3 rounded"
           style="aspect-ratio:1/1; padding:8px" >
           <div
-          :style="{ backgroundColor: color.css, gap:'5%', padding:'5%', 'align-content':'center' }"
+          :style="{ backgroundColor: color.css, gap:'5%' ,padding:'5%', 'align-content':'center' }"
           class="w-100 h-100 flex rounded">  
-            <span  v-if="selectedMode=='Contrast'&& !selectedBW"
-              v-for="(colorb, indexb) in palette"
-              :key="'c'+indexb" class="ratio-1 rounded" :style="{
-                background: colorb.css, 
-                width:'10%', height:'16px', display:'block', 
-                display:index==indexb?'none':'block',
-                'border':Math.abs(contrast(colorb.raw,color.raw))<5?'solid 1px white':'none'
-              }">{{ Math.round(contrast(colorb.raw,color.raw)) }}</span>
-          <span  v-else-if="selectedMode=='Contrast' && selectedBW"
-              v-for="(colorb, indexb) in palette"
-              :key="'d'+indexb" class="ratio-1 rounded" :style="{
-                background: colorb.css, 
-                width:'10%', height:'16px', display:'block', 
-                display:index==indexb?'none':'block',
-                'border':Math.abs(difference(colorb.raw,color.raw))<10?'solid 1px white':'none'
-              }">{{ Math.round(difference(colorb.raw,color.raw)) }}</span>
-          <span  v-else-if="selectedMode=='DeltaE'"
-              v-for="(colorb, indexb) in palette"
-              :key="'e'+indexb" class="ratio-1 rounded" :style="{
-                background: colorb.css, 
-                width:'10%', height:'16px', display:'block', 
-                display:index==indexb?'none':'block',
-                'border':Math.abs(deltaE(colorb.raw,color.raw))<15?'solid 1px white':'none'
-              }">{{Math.round(deltaE(colorb.raw,color.raw))}}</span>
+          <template v-if="false"></template>
+          <template v-else-if="selectedMode=='Contrast' && !data.bw" v-for="(value, indexb) in color.compare.contrast">
+            <span  v-if="index!=indexb" :key="'c'+indexb" :class="'ratio-1 rounded text-center text-small' + (value<5?'warn': '')" 
+              :style="{
+                background: palette[indexb].css, color:palette[indexb].compare.text,width:'21.25%', 'align-content': 'center',
+              }">{{ value }}</span>
+          </template>
+          <template v-else-if="selectedMode=='Contrast' && data.bw" v-for="(value, indexb) in color.compare.difference">
+            <span  v-if="index!=indexb" :key="'d'+indexb" :class="'ratio-1 rounded text-center text-small' + (value<10?'warn': '')" 
+              :style="{
+                background:  palette[indexb].css, color:palette[indexb].compare.text, width:'21.25%', 'align-content': 'center',
+              }">{{ value }}</span>
+          </template>
+          <template v-else-if="selectedMode=='DeltaE'" v-for="(value, indexb) in color.compare.deltaE">
+            <span v-if="index!=indexb" :key="'e'+indexb" :class="'ratio-1 rounded text-center text-small ' +(value<30?'warn':'')"
+              :style="{
+                background: palette[indexb].css, color:palette[indexb].compare.text, width:'21.25%', 'align-content': 'center',
+              }">{{ value }}</span>
+          </template>
           <span  v-else-if="selectedMode=='LCH'">{{color.css }}</span>
-          <span  v-else-if="selectedMode=='CMYK'">{{color.cmyk.map(v=>Math.round(v*100)/100) }}</span>
-          <span  v-else-if="selectedMode=='Hex'">{{color.hex }}</span>
-          <span  v-else-if="selectedMode=='Pantone'">{{color.pantone }}</span>
+          <span  v-else-if="selectedMode=='CMYK'" :style="{}">{{color.cmyk.map(v=>Math.round(v*100)/100) }}</span>
+          <span  v-else-if="selectedMode=='Hex'" :style="{background:color.hex}">{{color.hex }}</span>
+          <span  v-else-if="selectedMode=='Pantone'" :style="{background:color.pantone[1]}">{{color.pantone[0] }}</span>
             </div>
           <div>
           </div>
@@ -165,9 +169,9 @@
 </template>
 
 <script>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
-import {genSVG, genColor, genGray, toCSS, toXYZ, toLCH, toHex, genSmartBaseHues, toPantone, toCMYK, contrast, difference, deltaE} from './palette';
+import {genColor, genGray,  genSmartBaseHues, rainbow, wrapPalette} from './palette';
 
 export const throttle = (func, wait) => {
     var lastTime = 0;
@@ -200,58 +204,47 @@ export const throttle = (func, wait) => {
 export default {
   name: 'App',
   setup() {
-    const selectedColor = ref('#3193F5');
-    const mixlevel = ref(0)
+    const data = ref({
+      base:'#3193F5',
+      bw: true,
+      LC:{
+        pastellifyRange:[-1,8],
+        pastellify:0,
+      },
+      H:{
+        mix:0,
+        mode:0,
+        complementary: false,
+      },
+
+    })
     const palette = ref([])
-    const space = ref()
     const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast','DeltaE',null,'None']
     const selectedMode = ref('none')
-    const selectedBW = ref(true)
-    const selectedComplementary = ref(false)
-    const modesPastellify = 8;
-    const selectedPastellify = ref(0)
+    const rainbowPalette = ref([])
 
-    const slowgen = throttle((a,b, bw, comp, over)=>{
-      console.log(over)
+    const slowgen = throttle(d=>{
       let arr = []
-      if(bw){
-        arr = genColor(a,b,genSmartBaseHues(a),over);
+      if(d.bw){
+        arr = genColor(d.base,d.H.mix,genSmartBaseHues(d.base,parseInt(d.H.mode)),d.LC.pastellify);
       }else{
-        arr = genGray(a,comp);
+        arr = genGray(d.base,d.H.complementary);
       }
-      let raw = arr
-      let css = toCSS(arr)
-      let pantone = toPantone(arr)
-      let hex = toHex(arr)
-      let cmyk = toCMYK(arr)
-      palette.value = Array.from({ length: arr.length }, (_, i) => ({
-  css: css[i],
-  raw: raw[i],
-  pantone: pantone[i],
-  hex: hex[i],
-  cmyk: cmyk[i],
-}));
+      rainbowPalette.value = rainbow(d.base)
+      palette.value = wrapPalette(arr)
     },250)
-    // Function to generate a palette of colors
-    const generatePalette = () => {
-      slowgen(selectedColor.value,parseInt(mixlevel.value)/100., selectedBW.value, selectedComplementary.value, selectedPastellify.value)
-    }
+
+    const generatePalette = () => slowgen(data.value)
     generatePalette();
 
+
     return {
-      selectedColor,
-      mixlevel,
+      data,
+      rainbowPalette,
       palette,
-      space,
       generatePalette,
-      slowgen,
-      contrast,difference,deltaE, toCSS, toLCH, toHex,
       modes,
       selectedMode,
-      selectedBW,
-      selectedComplementary,
-      selectedPastellify
-
     };
   },
 };
