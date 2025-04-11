@@ -93,33 +93,34 @@ function getMin(l: number | null, c: number | null, h: number, step = 0.01) {
     return 1;
 }
 
-export function genSmartBaseHues(primaryColor: string,algo:number=2): number[] {
+export function genSmartBaseHues(primaryColor: string, algo: number = 0): number[] {
     if (!chroma.valid(primaryColor)) throw "Invalid Primary Color";
     const color = chroma(primaryColor).oklch();
-    switch(algo){
-        case 0:{
+    switch (algo) {
+        case 0: {
             let output = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((b) => (color[2] + b) % 360);
-            return selectClosestHues(output, rangeHues);
+
+            return selectClosestHues(output, rangeHues).sort((a, b) => Math.abs(a - color[2]) - Math.abs(b - color[2]));
         }
-        case 1:{
+        case 1: {
             let output = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((b) => (color[2] + b) % 360);
             return output;
         }
-        case 2:{
+        case 2: {
             let output = [
-                color[2],(color[2]+180)%360,
-                (color[2]+330)%360, (color[2]+30)%360,
-                (color[2]+150)%360,(color[2]+210)%360,
-                (color[2]+90)%360,(color[2]+270)%360,
+                color[2], (color[2] + 180) % 360,
+                (color[2] + 330) % 360, (color[2] + 30) % 360,
+                (color[2] + 150) % 360, (color[2] + 210) % 360,
+                (color[2] + 90) % 360, (color[2] + 270) % 360,
             ]
             return output
         }
-        case 3:{
+        case 3: {
             let output = [
-                color[2],(color[2]+180)%360,
-                (color[2]+315)%360, (color[2]+45)%360,
-                (color[2]+135)%360,(color[2]+225)%360,
-                (color[2]+90)%360,(color[2]+270)%360,
+                color[2], (color[2] + 180) % 360,
+                (color[2] + 315) % 360, (color[2] + 45) % 360,
+                (color[2] + 135) % 360, (color[2] + 225) % 360,
+                (color[2] + 90) % 360, (color[2] + 270) % 360,
             ]
             return output
         }
@@ -130,8 +131,8 @@ export function genSmartBaseHues(primaryColor: string,algo:number=2): number[] {
 export function genColor(
     primaryColor: string,
     mixlevel: number = 0,
-    bHs: number[] = baseHues,
-    over = 0,s:boolean=true
+    bHs: number[] = [],
+    over = 0, s: boolean = true
 ) {
     if (!chroma.valid(primaryColor)) throw "Invalid Primary Color";
     const color = chroma(primaryColor).oklch();
@@ -144,11 +145,11 @@ export function genColor(
 
     const palette = bHs.map((bH) => {
         let h = bH
-        if(mixlevel>0){
-            h = s?(chroma
+        if (mixlevel > 0) {
+            h = s ? (chroma
                 .oklch(pL, pC, bH)
                 .mix(chroma.oklch(pL, pC, pH), mixlevel, "oklch")
-                .oklch()[2]) : (((((bH-pH+360)%360)*(1-mixlevel))+pH)%360)
+                .oklch()[2]) : (((((bH - pH + 360) % 360) * (1 - mixlevel)) + pH) % 360)
         }
         let l = pLp * getMax(null, pC, h) || pL;
         let c = pCp * getMax(l, null, h) || pC;
@@ -157,7 +158,7 @@ export function genColor(
             c = pCp * getMax(l, null, h) || pC;
         }
         return chroma.oklch(l, c, h).oklch();
-        
+
     });
 
     return palette;
@@ -177,17 +178,6 @@ export function genGray(primaryColor: string, c: boolean = true) {
         return chroma.oklch(l, c, h).oklch();
     });
     return palette;
-}
-
-export function genSVG(palette: LCH_FORMAT[]) {
-    let output = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200">`;
-    let css_palette = toCSS(palette);
-    for (let j in css_palette) {
-        output += `<path fill="${css_palette}" d="M${100 * j} 0h100v100H${j * 100
-            }z" />`;
-    }
-    output += `</svg > `;
-    return output;
 }
 
 export function contrast(a: LCH_FORMAT, b: LCH_FORMAT) {
@@ -218,21 +208,54 @@ export function toCSS(palette: LCH_FORMAT[]) {
 }
 
 export function toXYZ(palette: LCH_FORMAT[]) {
-    return palette.map(
-        (p) =>
-            new simpleColorConverter({
-                hex: chroma.oklch(p[0], p[1], p[2]).hex(),
-                to: "xyz",
-            }).color
+    return palette.map(p =>
+        new simpleColorConverter({
+            lab: chroma.oklch(p[0], p[1], p[2]).lab(),
+            to: "xyz",
+        }).color
     );
 }
 
+function toOKLCH(lab: any) {
+    return chroma.lab(lab.l, lab.a, lab.b).css('oklch')
+}
+
 export function toPantone(palette: LCH_FORMAT[]) {
-    return palette.map(
-        (p) =>
-            new simpleColorConverter({
-                hex: chroma.oklch(p[0], p[1], p[2]).hex(),
-                to: "pantone",
-            }).color
-    );
+    return palette.map(p =>
+        new simpleColorConverter({
+            lab: chroma.oklch(p[0], p[1], p[2]).lab(),
+            to: "pantone",
+        }).color
+    ).map(p => [p,
+        toOKLCH(new simpleColorConverter({
+            pantone: p,
+            to: "lab",
+        }).color)
+    ]);
+}
+
+export function rainbow(base: string): string[] {
+    let b = toLCH(base)
+    return Array.from({ length: 360 }, (_, i) => toCSS([[b[0], b[1], i]])[0])
+}
+
+export function wrapPalette(arr: LCH_FORMAT[]) {
+    let raw = arr
+    let css = toCSS(arr)
+    let pantone = toPantone(arr)
+    let hex = toHex(arr)
+    let cmyk = toCMYK(arr)
+    return Array.from({ length: arr.length }, (_, i) => ({
+        css: css[i],
+        raw: raw[i],
+        pantone: pantone[i],
+        hex: hex[i],
+        cmyk: cmyk[i],
+        compare: {
+            contrast: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(contrast(raw[i], raw[j])))),
+            difference: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(difference(raw[i], raw[j])))),
+            deltaE: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(deltaE(raw[i], raw[j])))),
+            text: toCSS([[[0, 0, 0], [150, 0, 0]].reduce((a, b) => contrast(a as LCH_FORMAT, raw[i]) > contrast(b as LCH_FORMAT, raw[i]) ? a : b) as LCH_FORMAT])
+        }
+    }));
 }
