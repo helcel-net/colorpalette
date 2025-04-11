@@ -158,6 +158,7 @@
           <span  v-else-if="selectedMode=='CMYK'" :style="{}">{{color.cmyk.map(v=>Math.round(v*100)/100) }}</span>
           <span  v-else-if="selectedMode=='Hex'" :style="{background:color.hex}">{{color.hex }}</span>
           <span  v-else-if="selectedMode=='Pantone'" :style="{background:color.pantone[1]}">{{color.pantone[0] }}</span>
+          <span  v-else-if="selectedMode=='RAL'">{{color.ral }}</span>
             </div>
           <div>
           </div>
@@ -219,7 +220,7 @@ export default {
 
     })
     const palette = ref([])
-    const modes = ['Hex','CMYK', 'LCH', 'Pantone',null,'Contrast','DeltaE',null,'None']
+    const modes = ['Hex','CMYK', 'LCH', 'Pantone', 'RAL',null,'Contrast','DeltaE',null,'None']
     const selectedMode = ref('none')
     const rainbowPalette = ref([])
 

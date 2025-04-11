@@ -242,15 +242,17 @@ export function rainbow(base: string): string[] {
 export function wrapPalette(arr: LCH_FORMAT[]) {
     let raw = arr
     let css = toCSS(arr)
-    let pantone = toPantone(arr)
     let hex = toHex(arr)
     let cmyk = toCMYK(arr)
+    let pantone = toPantone(arr)
+    let ral = toRAL(arr)
     return Array.from({ length: arr.length }, (_, i) => ({
         css: css[i],
         raw: raw[i],
-        pantone: pantone[i],
         hex: hex[i],
         cmyk: cmyk[i],
+        pantone: pantone[i],
+        ral: ral[i],
         compare: {
             contrast: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(contrast(raw[i], raw[j])))),
             difference: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(difference(raw[i], raw[j])))),
@@ -258,4 +260,14 @@ export function wrapPalette(arr: LCH_FORMAT[]) {
             text: toCSS([[[0, 0, 0], [150, 0, 0]].reduce((a, b) => contrast(a as LCH_FORMAT, raw[i]) > contrast(b as LCH_FORMAT, raw[i]) ? a : b) as LCH_FORMAT])
         }
     }));
+}
+
+export function toRAL(palette: LCH_FORMAT[]) {
+    return palette.map(
+        (p) =>
+            new simpleColorConverter({
+                hex: chroma.oklch(p[0], p[1], p[2]).hex(),
+                to: "ral",
+            }).color
+    );
 }
