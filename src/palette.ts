@@ -128,11 +128,24 @@ export function genSmartBaseHues(primaryColor: string, algo: number = 0): number
     return []
 }
 
+function mixHue(p:LCH_FORMAT, bH:number, s:number, mixlevel:number):number{
+    switch(s){
+        case 0:{
+            return chroma.oklch(p[0], p[1], bH)
+                .mix(chroma.oklch(p[0], p[1], p[2]), mixlevel, "oklch")
+                .oklch()[2];
+        }
+        case 1:
+            return (((((bH - p[2] + 360) % 360) * (1 - mixlevel)) + p[2]) % 360)
+    }
+    return bH
+}
+
 export function genColor(
     primaryColor: string,
     mixlevel: number = 0,
     bHs: number[] = [],
-    over = 0, s: boolean = true
+    over = 0, s: number = 0
 ) {
     if (!chroma.valid(primaryColor)) throw "Invalid Primary Color";
     const color = chroma(primaryColor).oklch();
@@ -144,13 +157,8 @@ export function genColor(
     const pCp = Min(1, pC / getMax(pL, null, pH));
 
     const palette = bHs.map((bH) => {
-        let h = bH
-        if (mixlevel > 0) {
-            h = s ? (chroma
-                .oklch(pL, pC, bH)
-                .mix(chroma.oklch(pL, pC, pH), mixlevel, "oklch")
-                .oklch()[2]) : (((((bH - pH + 360) % 360) * (1 - mixlevel)) + pH) % 360)
-        }
+        let h = mixHue(color,bH,s,mixlevel/100)
+        
         let l = pLp * getMax(null, pC, h) || pL;
         let c = pCp * getMax(l, null, h) || pC;
         for (let itr = 0; itr < 100; ++itr) {
@@ -200,7 +208,9 @@ export function toHex(palette: LCH_FORMAT[]) {
 }
 
 export function toCMYK(palette: LCH_FORMAT[]) {
-    return palette.map((p) => chroma.oklch(p[0], p[1], p[2]).cmyk());
+    return palette.map(p => 
+        chroma.oklch(p[0], p[1], p[2]).cmyk()
+    ).map(p=>[p.map(v=>Math.round(v*100)/100),chroma.cmyk(p[0],p[1],p[2],p[3]).css('oklch')])
 }
 
 export function toCSS(palette: LCH_FORMAT[]) {
@@ -213,6 +223,17 @@ export function toXYZ(palette: LCH_FORMAT[]) {
             lab: chroma.oklch(p[0], p[1], p[2]).lab(),
             to: "xyz",
         }).color
+    );
+}
+
+export function fromXYZ(palette: number[][]) {
+    return palette.map(p =>
+        new simpleColorConverter({
+            xyz: p,
+            to: "lab",
+        }).color
+    ).map(p=>
+        chroma.lab(p.l,p.a,p.b).oklch()
     );
 }
 
@@ -233,26 +254,43 @@ export function toPantone(palette: LCH_FORMAT[]) {
         }).color)
     ]);
 }
-
-export function rainbow(base: string): string[] {
-    let b = toLCH(base)
-    return Array.from({ length: 360 }, (_, i) => toCSS([[b[0], b[1], i]])[0])
+export function toRAL(palette: LCH_FORMAT[]) {
+    return palette.map(
+        (p) =>
+            new simpleColorConverter({
+                hex: chroma.oklch(p[0], p[1], p[2]).hex(),
+                to: "ral",
+            }).color
+    ).map(p => [`${p.ral} (${p.name})`,
+        toOKLCH(new simpleColorConverter({
+            ral: p,
+            to: "lab",
+        }).color)
+    ]);
 }
 
-export function wrapPalette(arr: LCH_FORMAT[]) {
-    let raw = arr
-    let css = toCSS(arr)
+
+export function rainbow(base: string): LCH_FORMAT[] {
+    let b = toLCH(base)
+    return Array.from({ length: 360 }, (_, i) => [b[0], b[1], i])
+}
+
+export function wrapPalette(arr: LCH_FORMAT[], override?: LCH_FORMAT[]) {
+    let raw = override||arr
+    let css = toCSS(raw)
     let hex = toHex(arr)
     let cmyk = toCMYK(arr)
     let pantone = toPantone(arr)
     let ral = toRAL(arr)
     return Array.from({ length: arr.length }, (_, i) => ({
         css: css[i],
-        raw: raw[i],
+        raw: arr[i],
+        oklch: raw[i].map(e=>Math.round(e*100)/100),
         hex: hex[i],
         cmyk: cmyk[i],
         pantone: pantone[i],
         ral: ral[i],
+        text: toCSS([[[0, 0, 0], [150, 0, 0]].reduce((a, b) => contrast(a as LCH_FORMAT, raw[i]) > contrast(b as LCH_FORMAT, raw[i]) ? a : b) as LCH_FORMAT]),
         compare: {
             contrast: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(contrast(raw[i], raw[j])))),
             difference: Array.from({ length: arr.length }, (_, j) => Math.abs(Math.round(difference(raw[i], raw[j])))),
@@ -262,12 +300,43 @@ export function wrapPalette(arr: LCH_FORMAT[]) {
     }));
 }
 
-export function toRAL(palette: LCH_FORMAT[]) {
-    return palette.map(
-        (p) =>
-            new simpleColorConverter({
-                hex: chroma.oklch(p[0], p[1], p[2]).hex(),
-                to: "ral",
-            }).color
-    );
+export function applyBlindness(color: LCH_FORMAT, type: "protanope"|"deuteranope"|"tritanope"|"none", level:number = 1.0): LCH_FORMAT{
+    console.log(type)
+    if(type.toLowerCase()=='none' || level==0) return color
+    const confusions = {
+        "protanope": {
+            x: 0.7465,
+            y: 0.2535,
+            m: 1.273463,
+            yint: -0.073894
+        },
+        "deuteranope": {
+            x: 1.4,
+            y: -0.4,
+            m: 0.968437,
+            yint: 0.003331
+        },
+        "tritanope": {
+            x: 0.1748,
+            y: 0.0,
+            m: 0.062921,
+            yint: 0.292119
+        },
+        'none':{x:0,y:0,m:0,yint:0}
+    };
+    let confuse = confusions[type]
+    let xyz = toXYZ([color])[0]
+    let chroma_x = xyz.x / (xyz.x+xyz.y+xyz.z);
+    let chroma_y = xyz.y / (xyz.x+xyz.y+xyz.z);
+    var m = (chroma_y - confuse.y) / (chroma_x - confuse.x);
+    var yint = chroma_y - chroma_x * m; 
+    var deviate_x = (confuse.yint - yint) / (m - confuse.m);
+    var deviate_y = (m * deviate_x) + yint;
+    var X = deviate_x * xyz.y / deviate_y;
+    var Z = (1.0 - (deviate_x + deviate_y)) * xyz.y / deviate_y;
+    return fromXYZ([[
+        xyz.x*(1-level) +X*level,
+        xyz.y,
+        xyz.z*(1-level) +Z*level
+    ]])[0]
 }
